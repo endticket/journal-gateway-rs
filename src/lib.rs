@@ -87,6 +87,7 @@ pub struct JournalEntry {
     pub limit: Option<String>,
     pub limit_pretty: Option<String>,
     pub session_id: Option<String>,
+    pub target: Option<String>,
     pub syslog_pid: Option<String>,
     #[serde(rename = "_PID")]
     pub pid: Option<String>,
@@ -173,7 +174,7 @@ impl JournalGateway {
 
 #[cfg(test)]
 mod tests {
-    use JournalGateway;
+    use super::*;
 
     #[test]
     fn get_entries() {
@@ -181,9 +182,14 @@ mod tests {
         // TODO make this into a self contained test
 
         let journal_gw = JournalGateway::new("http://192.168.33.19:19531");
-        let res = journal_gw.get_all_entries();
+        //let res = journal_gw.get_all_entries();
+        let res: Vec<JournalEntry> =
+            journal_gw.get_entries(Some(vec![("SYSLOG_IDENTIFIER".to_string(),
+                                              "wash-manager".to_string())]));
         for entry in res {
-            println!("{}", entry.message);
+            println!("{}: {}",
+                     entry.syslog_identifier.unwrap_or("N/A".to_string()),
+                     entry.message);
         }
     }
 
