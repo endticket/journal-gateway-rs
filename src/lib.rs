@@ -9,7 +9,7 @@ extern crate serde_derive;
 use std::io::Read;
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
+//#[serde(deny_unknown_fields)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct JournalEntry {
     #[serde(rename = "__CURSOR")]
