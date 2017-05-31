@@ -1,5 +1,5 @@
 [package]
-name = "journal-gateway"
+name = "journal_gateway"
 version = "0.1.0"
 license = "MIT"
 authors = ["Juhasz Sandor <blackghost1987@gmail.com>"]
