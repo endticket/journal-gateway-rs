@@ -126,7 +126,8 @@ pub struct JournalGateway {
 }
 
 impl JournalGateway {
-    pub fn new(baseurl: &url::Url) -> JournalGateway {
+    pub fn new(baseurl_str: &str) -> JournalGateway {
+        let baseurl = url::Url::parse(baseurl_str).expect("Error during parsing baseurl");
         JournalGateway {
             baseurl: baseurl.to_owned(),
             client: hyper::Client::new(),
@@ -172,7 +173,6 @@ impl JournalGateway {
 
 #[cfg(test)]
 mod tests {
-    use url;
     use JournalGateway;
 
     #[test]
@@ -180,9 +180,7 @@ mod tests {
 
         // TODO make this into a self contained test
 
-        let baseurl = url::Url::parse("http://192.168.33.19:19531")
-            .expect("Error during parsing baseurl");
-        let journal_gw = JournalGateway::new(&baseurl);
+        let journal_gw = JournalGateway::new("http://192.168.33.19:19531");
         let res = journal_gw.get_all_entries();
         for entry in res {
             println!("{}", entry.message);
