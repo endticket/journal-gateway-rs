@@ -7,8 +7,9 @@ extern crate serde_json;
 extern crate serde_derive;
 
 use std::io::Read;
+use std::fmt;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 //#[serde(deny_unknown_fields)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct JournalEntry {
@@ -122,8 +123,31 @@ pub struct JournalEntry {
 }
 
 pub struct JournalGateway {
-    pub baseurl: url::Url,
+    baseurl: url::Url,
     client: hyper::Client,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PaginationParams {
+    pub cursor: Option<String>,
+    pub skip: Option<i32>,
+    pub length: Option<u32>,
+}
+
+impl fmt::Display for PaginationParams {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut str_data = String::new();
+        if let Some(ref cursor_str) = self.cursor {
+            str_data = str_data + cursor_str;
+        }
+        if let Some(ref skip_int) = self.skip {
+            str_data = format!("{}:{}", str_data, skip_int);
+        }
+        if let Some(ref length_int) = self.length {
+            str_data = format!("{}:{}", str_data, length_int);
+        }
+        write!(f, "{}", str_data)
+    }
 }
 
 impl JournalGateway {
@@ -136,18 +160,56 @@ impl JournalGateway {
     }
 
     pub fn get_all_entries(&self) -> Vec<JournalEntry> {
-        self.get_entries(None)
+        self.get_entries(None, None)
     }
 
-    pub fn get_entries(&self, filters: Option<Vec<(String, String)>>) -> Vec<JournalEntry> {
+    pub fn get_first_entry(&self, filters: Option<&Vec<(String, String)>>) -> Option<JournalEntry> {
+        let pagi = PaginationParams {
+            cursor: None,
+            skip: None,
+            length: Some(1),
+        };
+        let list = self.get_entries(filters, Some(pagi));
+        match list.is_empty() {
+            true => None,
+            false => Some(list[0].clone()),
+        }
+    }
+
+    pub fn get_last_entry(&self, filters: Option<&Vec<(String, String)>>) -> Option<JournalEntry> {
+        let pagi = PaginationParams {
+            cursor: None,
+            skip: Some(-1),
+            length: Some(2),
+        };
+        let list = self.get_entries(filters, Some(pagi));
+        match list.len() {
+            0 => None,
+            1 => Some(list[0].clone()),
+            2 => Some(list[1].clone()),
+            len => panic!("Requested 2 elements, but got {}", len),
+        }
+    }
+
+    pub fn get_entries(&self,
+                       filters: Option<&Vec<(String, String)>>,
+                       pagination: Option<PaginationParams>)
+                       -> Vec<JournalEntry> {
+
         let mut url = self.baseurl.join("entries").expect("url join failed");
         if let Some(filters_unwrapped) = filters {
             url.query_pairs_mut().extend_pairs(filters_unwrapped);
         }
 
-        let request = self.client
+        let mut request = self.client
             .request(hyper::method::Method::Get, url.as_str())
             .header(hyper::header::Accept::json());
+
+        if let Some(pagi) = pagination {
+            request =
+                request.header(hyper::header::Range::Unregistered("entries".to_string(),
+                                                                  pagi.to_string()));
+        }
 
         let mut response = request.send().expect("request failure");
         let mut body = String::new();
@@ -183,14 +245,20 @@ mod tests {
 
         let journal_gw = JournalGateway::new("http://192.168.33.19:19531");
         //let res = journal_gw.get_all_entries();
-        let res: Vec<JournalEntry> =
-            journal_gw.get_entries(Some(vec![("SYSLOG_IDENTIFIER".to_string(),
-                                              "wash-manager".to_string())]));
+
+        let filter = vec![("SYSLOG_IDENTIFIER".to_string(), "wash-manager".to_string())];
+
+        let res: Vec<JournalEntry> = journal_gw.get_entries(Some(&filter), None);
+        println!("Received {} entries", res.len());
         for entry in res {
             println!("{}: {}",
                      entry.syslog_identifier.unwrap_or("N/A".to_string()),
                      entry.message);
         }
+        println!("First entry: {:?}\n",
+                 journal_gw.get_first_entry(Some(&filter)));
+        println!("Last entry: {:?}\n",
+                 journal_gw.get_last_entry(Some(&filter)));
     }
 
     // TODO create another test with a filter, e.g.
