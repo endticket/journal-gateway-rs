@@ -229,11 +229,8 @@ impl JournalGateway {
         let mut res: Vec<JournalEntry> = vec![];
         for line in body.split("\n") {
             if line.len() > 0 {
-                let deser_res = serde_json::from_str(&line);
-                match deser_res {
-                    Ok(entry) => res.push(entry),
-                    Err(e) => println!("Deserialization error in line: {}, reason: {}", line, e),
-                }
+                let entry = try!(serde_json::from_str(&line));
+                res.push(entry);
             }
         }
 
