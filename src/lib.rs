@@ -223,7 +223,7 @@ impl JournalGateway {
                 let deser_res = serde_json::from_str(&line);
                 match deser_res {
                     Ok(entry) => res.push(entry),
-                    Err(e) => println!("Error {}, skipping line: {}", e, line),
+                    Err(e) => println!("Deserialization error in line: {}, reason: {}", line, e),
                 }
             }
         }
