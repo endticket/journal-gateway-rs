@@ -67,7 +67,7 @@ pub struct JournalEntry {
     pub command_line: Option<String>,
     #[serde(rename = "_AUDIT_LOGINUID")]
     pub audit_login_uid: Option<String>,
-    pub message: String,
+    pub message: Option<String>,
     pub code_file: Option<String>,
     pub code_line: Option<String>,
     pub code_function: Option<String>,
