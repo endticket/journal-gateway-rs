@@ -6,6 +6,11 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 
+#[macro_use]
+extern crate error_chain;
+
+mod error;
+
 use std::io::Read;
 use std::fmt;
 
@@ -151,52 +156,56 @@ impl fmt::Display for PaginationParams {
 }
 
 impl JournalGateway {
-    pub fn new(baseurl_str: &str) -> JournalGateway {
-        let baseurl = url::Url::parse(baseurl_str).expect("Error during parsing baseurl");
-        JournalGateway {
-            baseurl: baseurl.to_owned(),
-            client: hyper::Client::new(),
-        }
+    pub fn new(baseurl_str: &str) -> error::Result<JournalGateway> {
+        let baseurl = try!(url::Url::parse(baseurl_str));
+        Ok(JournalGateway {
+               baseurl: baseurl.to_owned(),
+               client: hyper::Client::new(),
+           })
     }
 
-    pub fn get_all_entries(&self) -> Vec<JournalEntry> {
+    pub fn get_all_entries(&self) -> error::Result<Vec<JournalEntry>> {
         self.get_entries(None, None)
     }
 
-    pub fn get_first_entry(&self, filters: Option<&Vec<(String, String)>>) -> Option<JournalEntry> {
+    pub fn get_first_entry(&self,
+                           filters: Option<&Vec<(String, String)>>)
+                           -> error::Result<JournalEntry> {
         let pagi = PaginationParams {
             cursor: None,
             skip: None,
             length: Some(1),
         };
-        let list = self.get_entries(filters, Some(pagi));
+        let list = try!(self.get_entries(filters, Some(pagi)));
         match list.is_empty() {
-            true => None,
-            false => Some(list[0].clone()),
+            true => Err(error::ErrorKind::NoEntries.into()),
+            false => Ok(list[0].clone()),
         }
     }
 
-    pub fn get_last_entry(&self, filters: Option<&Vec<(String, String)>>) -> Option<JournalEntry> {
+    pub fn get_last_entry(&self,
+                          filters: Option<&Vec<(String, String)>>)
+                          -> error::Result<JournalEntry> {
         let pagi = PaginationParams {
             cursor: None,
             skip: Some(-1),
             length: Some(2),
         };
-        let list = self.get_entries(filters, Some(pagi));
+        let list = try!(self.get_entries(filters, Some(pagi)));
         match list.len() {
-            0 => None,
-            1 => Some(list[0].clone()),
-            2 => Some(list[1].clone()),
-            len => panic!("Requested 2 elements, but got {}", len),
+            0 => Err(error::ErrorKind::NoEntries.into()),
+            1 => Ok(list[0].clone()),
+            2 => Ok(list[1].clone()),
+            len => panic!("Requested 2 elements, but got more: {}", len),
         }
     }
 
     pub fn get_entries(&self,
                        filters: Option<&Vec<(String, String)>>,
                        pagination: Option<PaginationParams>)
-                       -> Vec<JournalEntry> {
+                       -> error::Result<Vec<JournalEntry>> {
 
-        let mut url = self.baseurl.join("entries").expect("url join failed");
+        let mut url = try!(self.baseurl.join("entries"));
         if let Some(filters_unwrapped) = filters {
             if !filters_unwrapped.is_empty() {
                 url.query_pairs_mut().extend_pairs(filters_unwrapped);
@@ -213,11 +222,9 @@ impl JournalGateway {
                                                                   pagi.to_string()));
         }
 
-        let mut response = request.send().expect("request failure");
+        let mut response = try!(request.send());
         let mut body = String::new();
-        response
-            .read_to_string(&mut body)
-            .expect("body read failed");
+        try!(response.read_to_string(&mut body));
 
         let mut res: Vec<JournalEntry> = vec![];
         for line in body.split("\n") {
@@ -230,7 +237,7 @@ impl JournalGateway {
             }
         }
 
-        res
+        Ok(res)
     }
 }
 
@@ -245,12 +252,16 @@ mod tests {
 
         // TODO make this into a self contained test
 
-        let journal_gw = JournalGateway::new("http://192.168.33.19:19531");
+        let journal_gw = JournalGateway::new("http://192.168.33.19:19531")
+            .expect("JournalGateway initialization failed");
         //let res = journal_gw.get_all_entries();
 
         let filter = vec![("SYSLOG_IDENTIFIER".to_string(), "wash-manager".to_string())];
 
-        let res: Vec<JournalEntry> = journal_gw.get_entries(Some(&filter), None);
+        let res: Vec<JournalEntry> = journal_gw
+            .get_entries(Some(&filter), None)
+            .expect("should  have some entries");
+
         println!("Received {} entries", res.len());
         for entry in res {
             println!("{}: {}",
