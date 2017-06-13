@@ -14,6 +14,8 @@ mod error;
 use std::io::Read;
 use std::fmt;
 
+use hyper::status::StatusCode;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 //#[serde(deny_unknown_fields)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -225,6 +227,10 @@ impl JournalGateway {
         let mut response = try!(request.send());
         let mut body = String::new();
         try!(response.read_to_string(&mut body));
+
+        if response.status != StatusCode::Ok {
+            return Err(error::ErrorKind::RequestError(response.status, body).into());
+        }
 
         let mut res: Vec<JournalEntry> = vec![];
         for line in body.split("\n") {
