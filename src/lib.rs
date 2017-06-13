@@ -17,6 +17,13 @@ use std::fmt;
 use hyper::status::StatusCode;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum JournalMessage {
+    String(String),
+    Blob(Vec<u8>),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 //#[serde(deny_unknown_fields)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub struct JournalEntry {
@@ -67,7 +74,7 @@ pub struct JournalEntry {
     pub command_line: Option<String>,
     #[serde(rename = "_AUDIT_LOGINUID")]
     pub audit_login_uid: Option<String>,
-    pub message: Option<String>,
+    pub message: Option<JournalMessage>,
     pub code_file: Option<String>,
     pub code_line: Option<String>,
     pub code_function: Option<String>,
@@ -267,9 +274,9 @@ mod tests {
 
         println!("Received {} entries", res.len());
         for entry in res {
-            println!("{}: {}",
+            println!("{}: {:?}",
                      entry.syslog_identifier.unwrap_or("N/A".to_string()),
-                     entry.message.unwrap_or_default());
+                     entry.message);
         }
         println!("First entry: {:?}\n",
                  journal_gw.get_first_entry(Some(&filter)));
