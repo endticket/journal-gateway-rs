@@ -269,7 +269,7 @@ mod tests {
         for entry in res {
             println!("{}: {}",
                      entry.syslog_identifier.unwrap_or("N/A".to_string()),
-                     entry.message);
+                     entry.message.unwrap_or_default());
         }
         println!("First entry: {:?}\n",
                  journal_gw.get_first_entry(Some(&filter)));
