@@ -198,7 +198,9 @@ impl JournalGateway {
 
         let mut url = self.baseurl.join("entries").expect("url join failed");
         if let Some(filters_unwrapped) = filters {
-            url.query_pairs_mut().extend_pairs(filters_unwrapped);
+            if !filters_unwrapped.is_empty() {
+                url.query_pairs_mut().extend_pairs(filters_unwrapped);
+            }
         }
 
         let mut request = self.client
