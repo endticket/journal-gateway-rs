@@ -3,6 +3,8 @@ name = "journal_gateway"
 version = "0.2.0"
 license = "MIT"
 authors = ["Juhasz Sandor <blackghost1987@gmail.com>"]
+repository = "https://github.com/endticket/journal-gateway-rs"
+description = "An HTTP client for getting Journal entries from a systemd-journal-gatewayd server"
 
 [dependencies]
 url = "1.4.1"
@@ -11,3 +13,8 @@ serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 error-chain = "0.10.0"
+
+[package]
+exclude = [
+    "tests/*",
+]
