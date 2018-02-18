@@ -7,6 +7,9 @@ repository = "https://github.com/endticket/journal-gateway-rs"
 description = "An HTTP client for getting Journal entries from a systemd-journal-gatewayd server"
 exclude = [ "tests/*" ]
 
+[badges]
+circle-ci = { repository = "endticket/journal-gateway-rs", branch = "master" }
+
 [dependencies]
 url = "1.4.1"
 hyper = "0.10.11"
