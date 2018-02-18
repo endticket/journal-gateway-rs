@@ -1,6 +1,6 @@
 [package]
 name = "journal_gateway"
-version = "0.2.0"
+version = "0.2.1"
 license = "MIT"
 authors = ["Juhasz Sandor <blackghost1987@gmail.com>"]
 repository = "https://github.com/endticket/journal-gateway-rs"
