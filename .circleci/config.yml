@@ -2,12 +2,12 @@ version: 2
 jobs:
   build:
     docker:
-      - image: debian:stretch
+      - image: rust:stretch
     steps:
       - checkout
       - run:
-          name: Greeting
-          command: echo Hello, world.
+          name: Rust versions
+          command: rustc --version && cargo --version
       - run:
-          name: Print the Current Time
-          command: date
+          name: Cargo build
+          command: cargo build --release
